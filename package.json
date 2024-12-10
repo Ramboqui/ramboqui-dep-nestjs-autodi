@@ -1,7 +1,17 @@
 {
     "name": "@ramboqui/nestjs-autodi",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "description": "NestJS Dependency to enable auto depency injection using interfaces",
+    "license": "MIT",
+    "keywords": [
+        "NestJS",
+        "DI",
+        "Dependecy Injection",
+        "Auto Inject",
+        "interface implementation",
+        "inject using interface",
+        "scan providers"
+    ],
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
     "scripts": {

@@ -2,6 +2,35 @@
 
 This library provides decorators and utilities for automatic dependency injection and module configuration in NestJS, inspired by [@lido-nestjs/di](https://www.npmjs.com/package/@lido-nestjs/di) and [@tiny-nestjs/auto-injectable](https://www.npmjs.com/package/@tiny-nestjs/auto-injectable). It simplifies the process of wiring up providers and controllers without the need for manual declarations, and allows injecting implementations of interfaces without resorting to `@Inject()` in most cases.
 
+## Estrutura de Pastas
+
+```
+ramboqui-dep-nestjs-autodi/
+├─ .gitignore
+├─ .npmignore
+├─ .prettierrc
+├─ LICENSE
+├─ package.json
+├─ README`.md
+├─ tsconfig.json
+└─ src/
+   ├─ index.ts
+   ├─ constants/
+   │  └─ di.constants.ts
+   ├─ interfaces/
+   │  ├─ auto-module-metadata.interface.ts
+   │  └─ interface-tag.interface.ts
+   ├─ decorators/
+   │  ├─ auto-injectable.decorator.ts
+   │  ├─ auto-controller.decorator.ts
+   │  └─ auto-module.decorator.ts
+   ├─ scanner/
+   │  └─ scanner.ts
+   └─ utils/
+      └─ class-loader.util.ts
+
+```
+
 ## Features
 
 - **Automatic Scanning of Providers and Controllers:**  

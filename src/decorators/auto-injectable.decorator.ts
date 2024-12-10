@@ -3,7 +3,7 @@ import { Injectable, InjectableOptions } from '@nestjs/common';
 import 'reflect-metadata';
 
 import { AUTO_INJECTABLE_KEY, AUTO_PRIORITY_KEY, AUTO_TOKEN_KEY } from '../constants/di.constants';
-import { InterfaceTag } from '../interfaces/interface-tag.interface';
+import { InterfaceMetadata } from '../interfaces/interface-tag.interface';
 
 /**
  * Extended InjectableOptions that supports priority and interfaceTag.
@@ -18,7 +18,7 @@ export interface AutoInjectableOptions extends InjectableOptions {
 	 * If provided, the class implements this interface at runtime.
 	 * Will be registered as `{ provide: interfaceTag, useClass: class }`.
 	 */
-	interfaceTag?: InterfaceTag;
+	interfaceMetadata?: InterfaceMetadata;
 }
 
 /**
@@ -30,8 +30,8 @@ export function AutoInjectable(options?: AutoInjectableOptions): ClassDecorator 
 	return (target: Function) => {
 		Injectable(options)(target);
 		Reflect.defineMetadata(AUTO_INJECTABLE_KEY, true, target);
-		if (options?.interfaceTag) {
-			Reflect.defineMetadata(AUTO_TOKEN_KEY, options.interfaceTag, target);
+		if (options?.interfaceMetadata) {
+			Reflect.defineMetadata(AUTO_TOKEN_KEY, options.interfaceMetadata, target);
 		} else {
 			Reflect.defineMetadata(AUTO_TOKEN_KEY, target, target);
 		}

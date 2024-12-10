@@ -3,15 +3,15 @@ import 'reflect-metadata';
 import { INTERFACE_MAP_KEY, INTERFACE_TAG } from '../constants/di.constants';
 
 /**
- * Represents a special runtime interface tag that can be used as a token and recognized by `instanceof`.
+ * Represents a special runtime interface metadata that can be used as a token and recognized by `instanceof`.
  */
-export type InterfaceTag = (new (...args: any[]) => any) & {
+export type InterfaceMetadata = (new (...args: any[]) => any) & {
 	readonly tag: symbol;
-	readonly interfaceTag: symbol;
+	readonly interfaceMetadata: symbol;
 };
 
 interface GlobalType {
-	[INTERFACE_MAP_KEY]?: Map<symbol, InterfaceTag>;
+	[INTERFACE_MAP_KEY]?: Map<symbol, InterfaceMetadata>;
 }
 
 const globalObj = global as unknown as GlobalType;
@@ -25,11 +25,11 @@ const interfaceMap = globalObj[INTERFACE_MAP_KEY]!;
 /**
  * Checks if `instance` implements `iface`.
  * @param instance The instance to check.
- * @param iface The InterfaceTag.
+ * @param iface The InterfaceMetadata.
  * @returns true if `instance` implements `iface`.
  * @internal
  */
-function doesImplement(instance: any, iface: InterfaceTag): boolean {
+function doesImplement(instance: any, iface: InterfaceMetadata): boolean {
 	const cls = instance?.constructor;
 	if (!cls) return false;
 	const token = Reflect.getMetadata('auto:token', cls);
@@ -37,46 +37,46 @@ function doesImplement(instance: any, iface: InterfaceTag): boolean {
 }
 
 /**
- * Creates a special InterfaceTag for runtime checking and DI tokens.
+ * Creates a special InterfaceMetadata for runtime checking and DI tokens.
  * @param name The name of the interface.
- * @returns An InterfaceTag that can be used as a token and recognized by `instanceof`.
+ * @returns An InterfaceMetadata that can be used as a token and recognized by `instanceof`.
  */
-export function createInterface<I>(name: string): InterfaceTag {
+export function convertInterface<I>(name: string): InterfaceMetadata {
 	const id = Symbol.for(name);
 	const found = interfaceMap.get(id);
 	if (found) return found;
 
-	const newInterfaceTag = class {
+	const newInterfaceMetadata = class {
 		static [Symbol.hasInstance](instance: any): boolean {
-			return doesImplement(instance, this as unknown as InterfaceTag);
+			return doesImplement(instance, this as unknown as InterfaceMetadata);
 		}
 
 		static get id() {
-			return (this as unknown as InterfaceTag).tag;
+			return (this as unknown as InterfaceMetadata).tag;
 		}
 	};
 
-	Object.defineProperty(newInterfaceTag, 'tag', {
+	Object.defineProperty(newInterfaceMetadata, 'tag', {
 		value: id,
 		writable: false,
 		configurable: false,
 	});
 
-	Object.defineProperty(newInterfaceTag, 'interfaceTag', {
+	Object.defineProperty(newInterfaceMetadata, 'interfaceMetadata', {
 		value: INTERFACE_TAG,
 		writable: false,
 		configurable: false,
 	});
 
-	Object.defineProperty(newInterfaceTag, 'name', {
+	Object.defineProperty(newInterfaceMetadata, 'name', {
 		value: name,
 		writable: false,
 		configurable: false,
 	});
 
-	Object.freeze(newInterfaceTag);
+	Object.freeze(newInterfaceMetadata);
 
-	const casted = newInterfaceTag as unknown as InterfaceTag;
+	const casted = newInterfaceMetadata as unknown as InterfaceMetadata;
 	interfaceMap.set(id, casted);
 	return casted;
 }

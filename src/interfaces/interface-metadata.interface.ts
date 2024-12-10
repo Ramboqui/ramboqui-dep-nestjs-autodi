@@ -26,7 +26,7 @@ const interfaceMap = globalObj[INTERFACE_MAP_KEY]!;
  * Checks if `instance` implements `iface`.
  * @param instance The instance to check.
  * @param iface The InterfaceMetadata.
- * @returns true if `instance` implements `iface`.
+ * @returns `true` if `instance` implements `iface`.
  * @internal
  */
 function doesImplement(instance: any, iface: InterfaceMetadata): boolean {
@@ -37,7 +37,12 @@ function doesImplement(instance: any, iface: InterfaceMetadata): boolean {
 }
 
 /**
- * Creates a special InterfaceMetadata for runtime checking and DI tokens.
+ * Converts a conceptual interface into a runtime InterfaceMetadata token.
+ *
+ * This function creates a special InterfaceMetadata for runtime checking and DI tokens.
+ * You can then use this InterfaceMetadata as a class type in your constructor to inject implementations
+ * without using `@Inject()`.
+ *
  * @param name The name of the interface.
  * @returns An InterfaceMetadata that can be used as a token and recognized by `instanceof`.
  */

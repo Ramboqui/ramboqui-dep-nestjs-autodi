@@ -1,6 +1,12 @@
 import * as glob from 'glob';
 import * as path from 'path';
 
+/**
+ * Loads classes from given glob patterns relative to a base directory.
+ * @param patterns The glob patterns.
+ * @param baseDir The base directory.
+ * @returns An array of classes found.
+ */
 export function loadClassesFromPatterns(patterns: string[], baseDir: string): Function[] {
 	const classes: Function[] = [];
 	for (const pattern of patterns) {

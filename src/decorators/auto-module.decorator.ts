@@ -12,6 +12,12 @@ import {
 } from '../scanner/scanner';
 import { loadClassesFromPatterns } from '../utils/class-loader.util';
 
+/**
+ * Get the caller directory by analyzing the stack trace.
+ * Skips 'node_modules', 'reflect-metadata', and 'auto-module.decorator.ts'.
+ * @returns The directory of the caller module.
+ * @internal
+ */
 function getCallerDir(): string {
 	const stack = new Error().stack ?? '';
 	const lines = stack.split('\n');
@@ -34,6 +40,23 @@ function getCallerDir(): string {
 	return process.cwd();
 }
 
+/**
+ * A decorator that replaces @Module(), adding automatic scanning of providers and controllers.
+ *
+ * Scans the specified patterns for classes. If a class has @AutoInjectable, it becomes a provider.
+ * If a class has @AutoController, it becomes a controller.
+ *
+ * For classes that implement an interfaceTag (set in @AutoInjectable),
+ * they are registered with `{ provide: interfaceTag, useClass: ... }`.
+ *
+ * If multiple classes implement the same interfaceTag, the one with higher priority wins.
+ * In a tie, an error is thrown.
+ *
+ * This enables injecting the implementation by simply using the InterfaceTag as the parameter type,
+ * without needing @Inject().
+ *
+ * @param metadata Extended module metadata with providersPath and controllersPath.
+ */
 export function AutoModule(metadata: AutoModuleMetadata): ClassDecorator {
 	return (target: Function) => {
 		const { providersPath, controllersPath, ...rest } = metadata;
@@ -65,7 +88,7 @@ export function AutoModule(metadata: AutoModuleMetadata): ClassDecorator {
 					impls.sort((a, b) => b.priority - a.priority);
 					if (impls.length > 1 && impls[0].priority === impls[1].priority) {
 						throw new Error(
-							`Conflito: múltiplas implementações para o token '${token.toString()}' com a mesma prioridade.`,
+							`Conflict: multiple implementations for token '${token.toString()}' with the same priority.`,
 						);
 					}
 					allProviders.push({ provide: token, useClass: impls[0].cls });

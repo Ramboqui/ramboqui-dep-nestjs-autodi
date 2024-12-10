@@ -2,6 +2,9 @@ import 'reflect-metadata';
 
 import { INTERFACE_MAP_KEY, INTERFACE_TAG } from '../constants/di.constants';
 
+/**
+ * Represents a special runtime interface tag that can be used as a token and recognized by `instanceof`.
+ */
 export type InterfaceTag = (new (...args: any[]) => any) & {
 	readonly tag: symbol;
 	readonly interfaceTag: symbol;
@@ -19,6 +22,13 @@ if (!globalObj[INTERFACE_MAP_KEY]) {
 
 const interfaceMap = globalObj[INTERFACE_MAP_KEY]!;
 
+/**
+ * Checks if `instance` implements `iface`.
+ * @param instance The instance to check.
+ * @param iface The InterfaceTag.
+ * @returns true if `instance` implements `iface`.
+ * @internal
+ */
 function doesImplement(instance: any, iface: InterfaceTag): boolean {
 	const cls = instance?.constructor;
 	if (!cls) return false;
@@ -26,6 +36,11 @@ function doesImplement(instance: any, iface: InterfaceTag): boolean {
 	return token === iface;
 }
 
+/**
+ * Creates a special InterfaceTag for runtime checking and DI tokens.
+ * @param name The name of the interface.
+ * @returns An InterfaceTag that can be used as a token and recognized by `instanceof`.
+ */
 export function createInterface<I>(name: string): InterfaceTag {
 	const id = Symbol.for(name);
 	const found = interfaceMap.get(id);

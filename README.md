@@ -2,7 +2,7 @@
 
 This library provides decorators and utilities for automatic dependency injection and module configuration in NestJS, inspired by [@lido-nestjs/di](https://www.npmjs.com/package/@lido-nestjs/di) and [@tiny-nestjs/auto-injectable](https://www.npmjs.com/package/@tiny-nestjs/auto-injectable). It simplifies the process of wiring up providers and controllers without the need for manual declarations, and allows injecting implementations of interfaces without resorting to `@Inject()` in most cases.
 
-## Estrutura de Pastas
+## Project Structure
 
 ```
 ramboqui-dep-nestjs-autodi/
@@ -135,40 +135,10 @@ export class AppModule {}
 
 This will scan the specified patterns relative to the module's directory, find classes with `@AutoInjectable()` and `@AutoController()`, and register them automatically.
 
-## Project Structure
-
-A possible project structure integrating this library:
-
-```text
-src/
-  application/
-    services/
-      catalogo.service.ts
-  infrastructure/
-    controllers/
-      catalogo.controller.ts
-  interfaces/
-    catalogo.interface.ts
-  app.module.ts
-```
-
 ## Debugging and Running
 
 - Works with `ts-node` or after compilation.
 - No extra config needed besides installing peer dependencies and using decorators.
-
-## Publishing the Library
-
-This library builds TypeScript into JavaScript before publishing. To publish the build only:
-
-1. Add a `.npmignore` file excluding `src`, `tsconfig.json`, etc.
-2. Run:
-   ```bash
-   npm run build
-   npm publish --access public
-   ```
-
-Only the `dist` folder and allowed files will be published.
 
 ## Credits
 

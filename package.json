@@ -1,7 +1,7 @@
 {
     "name": "@ramboqui/nestjs-autodi",
-    "version": "1.0.2",
-    "description": "NestJS Dependency to enable auto depency injection using interfaces",
+    "version": "1.0.3",
+    "description": "This library provides decorators and utilities for automatic dependency injection and module configuration in NestJS.",
     "license": "MIT",
     "keywords": [
         "NestJS",

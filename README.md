@@ -33,27 +33,23 @@ ramboqui-dep-nestjs-autodi/
 
 ## Features
 
-- **Automatic Scanning of Providers and Controllers:**  
-  The `@AutoModule()` decorator scans specified paths for classes annotated with `@AutoInjectable()` and `@AutoController()` and registers them automatically.
-  
-- **Runtime Interface Metadata Tokens:**  
-  Use `convertInterface` to convert an interface into a runtime token (`InterfaceMetadata`) that can be used as a DI token, and recognized by `instanceof`.
-  
-- **Priority-Based Conflict Resolution:**  
-  If multiple classes implement the same interface token, the one with the highest `priority` (set in `@AutoInjectable` options) is chosen. A tie results in an error.
-  
-- **No Manual `@Inject()` Needed for Interfaces:**  
-  By using the `InterfaceMetadata` directly as a type in the constructor parameter, you can get the appropriate implementation injected automatically.
-  
-- **Preserves Original NestJS Metadata:**  
-  `@AutoInjectable()` calls `@Injectable()` internally, `@AutoController()` calls `@Controller()` internally, ensuring all original NestJS metadata is retained.
+-   **Automatic Scanning of Providers and Controllers:**  
+    The `@AutoModule()` decorator scans specified paths for classes annotated with `@AutoInjectable()` and `@AutoController()` and registers them automatically.
+-   **Runtime Interface Metadata Tokens:**  
+    Use `convertInterface` to convert an interface into a runtime token (`InterfaceMetadata`) that can be used as a DI token, and recognized by `instanceof`.
+-   **Priority-Based Conflict Resolution:**  
+    If multiple classes implement the same interface token, the one with the highest `priority` (set in `@AutoInjectable` options) is chosen. A tie results in an error.
+-   **No Manual `@Inject()` Needed for Interfaces:**  
+    By using the `InterfaceMetadata` directly as a type in the constructor parameter, you can get the appropriate implementation injected automatically.
+-   **Preserves Original NestJS Metadata:**  
+    `@AutoInjectable()` calls `@Injectable()` internally, `@AutoController()` calls `@Controller()` internally, ensuring all original NestJS metadata is retained.
 
 ## Requirements
 
-- Node.js environment
-- NestJS v10 or higher
-- `reflect-metadata`
-- TypeScript
+-   Node.js environment
+-   NestJS v10 or higher
+-   `reflect-metadata`
+-   TypeScript
 
 ## Installation
 
@@ -73,7 +69,7 @@ Use `convertInterface` to create an `InterfaceMetadata` that can be used as a to
 import { convertInterface } from '@ramboqui/nestjs-autodi';
 
 export interface ICatalogoServicePort {
-  listarItens(): string[];
+	listarItens(): string[];
 }
 
 export const ICatalogoServicePortMeta = convertInterface<ICatalogoServicePort>('ICatalogoServicePort');
@@ -89,9 +85,9 @@ import { ICatalogoServicePortMeta, ICatalogoServicePort } from '../interfaces/ca
 
 @AutoInjectable({ interfaceMetadata: ICatalogoServicePortMeta, priority: 10 })
 export class CatalogoService implements ICatalogoServicePort {
-  listarItens(): string[] {
-    return ['item1', 'item2'];
-  }
+	listarItens(): string[] {
+		return ['item1', 'item2'];
+	}
 }
 ```
 
@@ -108,12 +104,12 @@ import { ICatalogoServicePortMeta } from '../interfaces/catalogo.interface';
 
 @AutoController('catalogo')
 export class CatalogoController {
-  constructor(private readonly catalogoService: ICatalogoServicePortMeta) {}
+	constructor(private readonly catalogoService: ICatalogoServicePortMeta) {}
 
-  @Get()
-  listar() {
-    return this.catalogoService.listarItens();
-  }
+	@Get()
+	listar() {
+		return this.catalogoService.listarItens();
+	}
 }
 ```
 
@@ -127,8 +123,8 @@ Replace `@Module()` with `@AutoModule()` to automatically load providers and con
 import { AutoModule } from '@ramboqui/nestjs-autodi';
 
 @AutoModule({
-  providersPath: ['application/services/**/*.ts'],
-  controllersPath: ['infrastructure/controllers/**/*.ts']
+	providersPath: ['application/services/**/*.ts'],
+	controllersPath: ['infrastructure/controllers/**/*.ts'],
 })
 export class AppModule {}
 ```
@@ -137,12 +133,12 @@ This will scan the specified patterns relative to the module's directory, find c
 
 ## Debugging and Running
 
-- Works with `ts-node` or after compilation.
-- No extra config needed besides installing peer dependencies and using decorators.
+-   Works with `ts-node` or after compilation.
+-   No extra config needed besides installing peer dependencies and using decorators.
 
 ## Credits
 
-- Inspired by ideas from [@lido-nestjs/di](URL_HERE) and [@tiny-nestjs/auto-injectable](URL_HERE).
+-   Inspired by ideas from [@lido-nestjs/di](URL_HERE) and [@tiny-nestjs/auto-injectable](URL_HERE).
 
 ## License
 

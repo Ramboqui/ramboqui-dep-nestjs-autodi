@@ -31,7 +31,7 @@ Interfaces vanish at runtime. `convertInterface` creates an `InterfaceMetadata` 
 import { convertInterface } from '@ramboqui/nestjs-autodi';
 
 export interface ICatalogoServicePort {
-listarItens(): string[];
+	listarItens(): string[];
 }
 
 export const ICatalogoServicePort = convertInterface<ICatalogoServicePort>('ICatalogoServicePort');
@@ -55,9 +55,9 @@ import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
 
 @AutoInjectable({ interfaceMetadata: ICatalogoServicePort, priority: 10 })
 export class CatalogoService implements ICatalogoServicePort {
-listarItens(): string[] {
-return ['item1', 'item2'];
-}
+	listarItens(): string[] {
+		return ['item1', 'item2'];
+	}
 }
 ```
 
@@ -76,12 +76,12 @@ import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
 
 @AutoController('catalogo')
 export class CatalogoController {
-constructor(private readonly catalogoService: ICatalogoServicePort) {}
+	constructor(private readonly catalogoService: ICatalogoServicePort) {}
 
-@Get()
-listar() {
-return this.catalogoService.listarItens();
-}
+	@Get()
+	listar() {
+		return this.catalogoService.listarItens();
+	}
 }
 ```
 
@@ -97,8 +97,8 @@ Here, `catalogoService` uses `ICatalogoServicePort` (an interface token) as its 
 import { AutoModule } from '@ramboqui/nestjs-autodi';
 
 @AutoModule({
-providersPath: ['application/services/**/*.ts'],
-controllersPath: ['infrastructure/controllers/**/*.ts'],
+	providersPath: ['application/services/**/*.ts'],
+	controllersPath: ['infrastructure/controllers/**/*.ts'],
 })
 export class AppModule {}
 ```
@@ -120,7 +120,7 @@ This version includes optimizations to `loadClassesFromPatterns`:
 import { convertInterface } from '@ramboqui/nestjs-autodi';
 
 export interface ICatalogoServicePort {
-listarItens(): string[];
+	listarItens(): string[];
 }
 export const ICatalogoServicePort = convertInterface<ICatalogoServicePort>('ICatalogoServicePort');
 
@@ -130,9 +130,9 @@ import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
 
 @AutoInjectable({ interfaceMetadata: ICatalogoServicePort, priority: 10 })
 export class CatalogoService implements ICatalogoServicePort {
-listarItens(): string[] {
-return ['item1', 'item2'];
-}
+	listarItens(): string[] {
+		return ['item1', 'item2'];
+	}
 }
 
 // infrastructure/controllers/catalogo.controller.ts
@@ -142,20 +142,20 @@ import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
 
 @AutoController('catalogo')
 export class CatalogoController {
-constructor(private readonly catalogoService: ICatalogoServicePort) {}
+	constructor(private readonly catalogoService: ICatalogoServicePort) {}
 
-@Get()
-listar() {
-return this.catalogoService.listarItens();
-}
+	@Get()
+	listar() {
+		return this.catalogoService.listarItens();
+	}
 }
 
 // app.module.ts
 import { AutoModule } from '@ramboqui/nestjs-autodi';
 
 @AutoModule({
-providersPath: ['application/services/**/*.ts'],
-controllersPath: ['infrastructure/controllers/**/*.ts']
+	providersPath: ['application/services/**/*.ts'],
+	controllersPath: ['infrastructure/controllers/**/*.ts'],
 })
 export class AppModule {}
 ```

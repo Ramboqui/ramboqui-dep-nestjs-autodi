@@ -1,6 +1,6 @@
 {
     "name": "@ramboqui/nestjs-autodi",
-    "version": "1.0.6",
+    "version": "1.1.1",
     "description": "This library provides decorators and utilities for automatic dependency injection and module configuration in NestJS.",
     "author": {
         "email": "eu.258963@hotmail.com",

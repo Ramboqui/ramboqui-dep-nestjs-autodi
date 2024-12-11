@@ -1,145 +1,182 @@
 # @ramboqui/nestjs-autodi
 
-This library provides decorators and utilities for automatic dependency injection and module configuration in NestJS, inspired by [@lido-nestjs/di](https://www.npmjs.com/package/@lido-nestjs/di) and [@tiny-nestjs/auto-injectable](https://www.npmjs.com/package/@tiny-nestjs/auto-injectable). It simplifies the process of wiring up providers and controllers without the need for manual declarations, and allows injecting implementations of interfaces without resorting to `@Inject()` in most cases.
+This library provides decorators and utilities for NestJS to enable automatic discovery and registration of providers and controllers, as well as a simpler way to handle interfaces at runtime. It is inspired by [@lido-nestjs/di](URL_HERE) and [@tiny-nestjs/auto-injectable](URL_HERE).
 
-## Project Structure
+By using this library, you reduce boilerplate, avoid manual listing of providers and controllers in your modules, and you can even inject implementations of interfaces without having to use `@Inject()` decorators. This makes your code cleaner, more maintainable, and easier to scale.
 
-```
-ramboqui-dep-nestjs-autodi/
-├─ .gitignore
-├─ .npmignore
-├─ .prettierrc
-├─ LICENSE
-├─ package.json
-├─ README`.md
-├─ tsconfig.json
-└─ src/
-   ├─ index.ts
-   ├─ constants/
-   │  └─ di.constants.ts
-   ├─ interfaces/
-   │  ├─ auto-module-metadata.interface.ts
-   │  └─ interface-tag.interface.ts
-   ├─ decorators/
-   │  ├─ auto-injectable.decorator.ts
-   │  ├─ auto-controller.decorator.ts
-   │  └─ auto-module.decorator.ts
-   ├─ scanner/
-   │  └─ scanner.ts
-   └─ utils/
-      └─ class-loader.util.ts
+## Why Use This Library Instead of Pure NestJS?
 
-```
+In NestJS, you typically have to:
 
-## Features
+- Manually declare providers and controllers in your `@Module()`.
+- Use `@Inject()` when injecting by tokens, especially for interfaces that don't exist at runtime.
+- Update your modules each time you add or remove a provider or controller.
 
--   **Automatic Scanning of Providers and Controllers:**  
-    The `@AutoModule()` decorator scans specified paths for classes annotated with `@AutoInjectable()` and `@AutoController()` and registers them automatically.
--   **Runtime Interface Metadata Tokens:**  
-    Use `convertInterface` to convert an interface into a runtime token (`InterfaceMetadata`) that can be used as a DI token, and recognized by `instanceof`.
--   **Priority-Based Conflict Resolution:**  
-    If multiple classes implement the same interface token, the one with the highest `priority` (set in `@AutoInjectable` options) is chosen. A tie results in an error.
--   **No Manual `@Inject()` Needed for Interfaces:**  
-    By using the `InterfaceMetadata` directly as a type in the constructor parameter, you can get the appropriate implementation injected automatically.
--   **Preserves Original NestJS Metadata:**  
-    `@AutoInjectable()` calls `@Injectable()` internally, `@AutoController()` calls `@Controller()` internally, ensuring all original NestJS metadata is retained.
+With `@ramboqui/nestjs-autodi`:
 
-## Requirements
+- **Automatic Scanning:** `@AutoModule()` scans your directories for classes annotated with `@AutoInjectable()` and `@AutoController()`, registering them without manual edits.
+- **Interface Metadata Tokens:** You can convert interfaces into runtime tokens and inject them just like classes, without `@Inject()`.
+- **Priority-Based Implementation Selection:** If multiple classes implement the same interface, assign a `priority` to pick the best one automatically.
+- **Preserves Metadata:** It still calls the original `@Injectable()` and `@Controller()` internally, ensuring full compatibility with NestJS features.
 
--   Node.js environment
--   NestJS v10 or higher
--   `reflect-metadata`
--   TypeScript
+In short, you write less repetitive code, rely more on conventions, and simplify the handling of interfaces and their implementations.
 
-## Installation
+## Core Concepts
 
-```bash
-npm install @ramboqui/nestjs-autodi
-```
+### 1. Converting Interfaces to Runtime Tokens
 
-You must have `@nestjs/common`, `@nestjs/core`, and `reflect-metadata` installed as peer dependencies.
+Normally, TypeScript interfaces do not exist at runtime. This library introduces `convertInterface<I>(name)` to create a runtime token called `InterfaceMetadata`. This token can be used by NestJS DI just like a class.
 
-## Usage
+**Why do this?** Because with a runtime token, you can inject implementations by simply referencing the interface token as a parameter type in the constructor, without `@Inject()`.
 
-### Defining Interfaces
-
-Use `convertInterface` to create an `InterfaceMetadata` that can be used as a token at runtime.
+**Example:**
 
 ```typescript
 import { convertInterface } from '@ramboqui/nestjs-autodi';
 
 export interface ICatalogoServicePort {
-	listarItens(): string[];
+  listarItens(): string[];
 }
 
-export const ICatalogoServicePortMeta = convertInterface<ICatalogoServicePort>('ICatalogoServicePort');
+// Convert the interface into a runtime token
+export const ICatalogoServicePort = convertInterface<ICatalogoServicePort>('ICatalogoServicePort');
 ```
 
-### Implementing Classes
+Now `ICatalogoServicePort` is a runtime token you can use for DI.
 
-Use `@AutoInjectable({ interfaceMetadata: ..., priority: ... })` to mark a class as a provider. If `interfaceMetadata` is provided, the class will be registered as `{ provide: interfaceMetadata, useClass: ... }`.
+### 2. AutoInjectable Classes
+
+The `@AutoInjectable(options?)` decorator has two main functions:
+
+1. **Automatic Provider Registration:**  
+   If you annotate a class with `@AutoInjectable()` (even without `interfaceMetadata`), that class is automatically considered a NestJS provider. When you use `@AutoModule()` (explained later), the class will be discovered and registered as a provider without you manually listing it. You can then inject this class into your constructors by just referencing it as a parameter type.
+
+2. **Interface Implementation Declaration (Optional):**  
+   If you provide `interfaceMetadata` (the token obtained from `convertInterface`) in `@AutoInjectable({ interfaceMetadata: ... })`, you are telling NestJS that this class is an implementation of that interface. This means that when you attempt to inject by the interface token, NestJS will supply this class. If multiple classes implement the same interface, you can set a `priority` to choose the best implementation. No `@Inject()` is needed if your parameter type is the `InterfaceMetadata` token.
+
+**Example:**
 
 ```typescript
 import { AutoInjectable } from '@ramboqui/nestjs-autodi';
-import { ICatalogoServicePortMeta, ICatalogoServicePort } from '../interfaces/catalogo.interface';
+import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
 
-@AutoInjectable({ interfaceMetadata: ICatalogoServicePortMeta, priority: 10 })
+@AutoInjectable({ interfaceMetadata: ICatalogoServicePort, priority: 10 })
 export class CatalogoService implements ICatalogoServicePort {
-	listarItens(): string[] {
-		return ['item1', 'item2'];
-	}
+  listarItens(): string[] {
+    return ['item1', 'item2'];
+  }
 }
 ```
 
-If multiple classes implement `ICatalogoServicePortMeta`, the one with higher priority wins.
+Here, `CatalogoService` is both automatically registerable as a provider and associated with `ICatalogoServicePort`. If you have multiple implementations of `ICatalogoServicePort`, `priority` decides which one wins.
 
-### Auto Controllers
+If you don't provide `interfaceMetadata`, the class is still auto-discovered as a provider, but won't serve as an implementation of a runtime interface token. You can still inject it by its own class type.
 
-Use `@AutoController()` to mark a class as a controller without declaring it manually in the module.
+### 3. Auto Controllers
+
+The `@AutoController(prefix?)` decorator works like `@Controller()`, but classes annotated this way are also automatically discovered. This means no more manual listing of controllers in your modules.
+
+**Example:**
 
 ```typescript
 import { AutoController } from '@ramboqui/nestjs-autodi';
 import { Get } from '@nestjs/common';
-import { ICatalogoServicePortMeta } from '../interfaces/catalogo.interface';
+import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
 
 @AutoController('catalogo')
 export class CatalogoController {
-	constructor(private readonly catalogoService: ICatalogoServicePortMeta) {}
+  constructor(private readonly catalogoService: ICatalogoServicePort) {}
 
-	@Get()
-	listar() {
-		return this.catalogoService.listarItens();
-	}
+  @Get()
+  listar() {
+    return this.catalogoService.listarItens();
+  }
 }
 ```
 
-Notice that the `catalogoService` parameter uses `ICatalogoServicePortMeta` directly as a type. No `@Inject()` is required because the library registers `{ provide: ICatalogoServicePortMeta, useClass: CatalogoService }` automatically.
+Because `ICatalogoServicePort` is a runtime token (from `convertInterface`), and `CatalogoService` is registered via `@AutoInjectable`, you get the correct implementation injected without `@Inject()`.
 
-### Auto Module
+### 4. Auto Module
 
-Replace `@Module()` with `@AutoModule()` to automatically load providers and controllers from specified paths.
+`@AutoModule({ providersPath, controllersPath, ... })` replaces `@Module()` and scans the specified paths for classes with `@AutoInjectable()` and `@AutoController()`. It uses the call stack to determine the directory of the calling module, ensuring relative paths work even after build.
+
+**Example:**
 
 ```typescript
 import { AutoModule } from '@ramboqui/nestjs-autodi';
 
 @AutoModule({
-	providersPath: ['application/services/**/*.ts'],
-	controllersPath: ['infrastructure/controllers/**/*.ts'],
+  providersPath: ['application/services/**/*.ts'],
+  controllersPath: ['infrastructure/controllers/**/*.ts'],
 })
 export class AppModule {}
 ```
 
-This will scan the specified patterns relative to the module's directory, find classes with `@AutoInjectable()` and `@AutoController()`, and register them automatically.
+This will automatically register all discovered providers and controllers. No manual edits needed.
 
-## Debugging and Running
+## How It All Ties Together
 
--   Works with `ts-node` or after compilation.
--   No extra config needed besides installing peer dependencies and using decorators.
+1. Convert your interface into a token with `convertInterface`.
+2. Annotate your classes with `@AutoInjectable()`. If you specify `interfaceMetadata`, that class becomes the implementation of the interface token.
+3. Annotate your controllers with `@AutoController()`.
+4. Use `@AutoModule()` in your module, specifying where to find providers and controllers.
+5. NestJS will automatically discover and register them, and you can inject classes or interfaces without `@Inject()`.
+
+## Example Scenario
+
+```typescript
+// interfaces/catalogo.interface.ts
+import { convertInterface } from '@ramboqui/nestjs-autodi';
+
+export interface ICatalogoServicePort {
+  listarItens(): string[];
+}
+export const ICatalogoServicePort = convertInterface<ICatalogoServicePort>('ICatalogoServicePort');
+
+// application/services/catalogo.service.ts
+import { AutoInjectable } from '@ramboqui/nestjs-autodi';
+import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
+
+@AutoInjectable({ interfaceMetadata: ICatalogoServicePort, priority: 10 })
+export class CatalogoService implements ICatalogoServicePort {
+  listarItens(): string[] {
+    return ['item1', 'item2'];
+  }
+}
+
+// infrastructure/controllers/catalogo.controller.ts
+import { AutoController } from '@ramboqui/nestjs-autodi';
+import { Get } from '@nestjs/common';
+import { ICatalogoServicePort } from '../interfaces/catalogo.interface';
+
+@AutoController('catalogo')
+export class CatalogoController {
+  constructor(private readonly catalogoService: ICatalogoServicePort) {}
+
+  @Get()
+  listar() {
+    return this.catalogoService.listarItens();
+  }
+}
+
+// app.module.ts
+import { AutoModule } from '@ramboqui/nestjs-autodi';
+
+@AutoModule({
+  providersPath: ['application/services/**/*.ts'],
+  controllersPath: ['infrastructure/controllers/**/*.ts']
+})
+export class AppModule {}
+```
+
+No manual listing of the `CatalogoService` or `CatalogoController` is needed. `ICatalogoServicePort` is recognized at runtime, and `CatalogoService` is chosen automatically.
 
 ## Credits
 
--   Inspired by ideas from [@lido-nestjs/di](URL_HERE) and [@tiny-nestjs/auto-injectable](URL_HERE).
+Inspired by:  
+- [@lido-nestjs/di](URL_HERE)  
+- [@tiny-nestjs/auto-injectable](URL_HERE)
 
 ## License
 
-MIT License.
+MIT License

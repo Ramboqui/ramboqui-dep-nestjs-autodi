@@ -43,31 +43,30 @@ function getCallerDir(): string {
 /**
  * A decorator that replaces @Module(), adding automatic scanning of providers and controllers.
  *
- * Scans the specified patterns for classes. If a class has @AutoInjectable, it becomes a provider.
- * If a class has @AutoController, it becomes a controller.
+ * If `debug` is true, logs will be printed showing timing, loaded items, and token associations.
  *
- * For classes that implement an interfaceTag (set in @AutoInjectable),
- * they are registered with `{ provide: interfaceTag, useClass: ... }`.
- *
- * If multiple classes implement the same interfaceTag, the one with higher priority wins.
- * In a tie, an error is thrown.
- *
- * This enables injecting the implementation by simply using the InterfaceTag as the parameter type,
- * without needing @Inject().
- *
- * @param metadata Extended module metadata with providersPath and controllersPath.
+ * @param metadata Extended module metadata with providersPath, controllersPath, and debug.
  */
 export function AutoModule(metadata: AutoModuleMetadata): ClassDecorator {
 	return (target: Function) => {
-		const { providersPath, controllersPath, ...rest } = metadata;
+		const startTime = Date.now();
+
+		const { providersPath, controllersPath, debug, ...rest } = metadata;
 
 		let allProviders: any[] = rest.providers ? [...rest.providers] : [];
 		let allControllers: any[] = rest.controllers ? [...rest.controllers] : [];
 
 		const baseDir = getCallerDir();
 
+		if (debug) {
+			console.log(`[debug] AutoModule scanning with baseDir: ${baseDir}`);
+		}
+
+		const loadedProviders: { token: any; cls: Function; priority: number }[] = [];
+		const loadedControllers: Function[] = [];
+
 		if (providersPath && providersPath.length > 0) {
-			const providerClasses = loadClassesFromPatterns(providersPath, baseDir);
+			const providerClasses = loadClassesFromPatterns(providersPath, { baseDir, debug });
 			const implMap = new Map<any, { cls: Function; priority: number }[]>();
 
 			for (const cls of providerClasses) {
@@ -84,6 +83,7 @@ export function AutoModule(metadata: AutoModuleMetadata): ClassDecorator {
 			for (const [token, impls] of implMap.entries()) {
 				if (impls.length === 1) {
 					allProviders.push({ provide: token, useClass: impls[0].cls });
+					loadedProviders.push({ token, cls: impls[0].cls, priority: impls[0].priority });
 				} else {
 					impls.sort((a, b) => b.priority - a.priority);
 					if (impls.length > 1 && impls[0].priority === impls[1].priority) {
@@ -92,15 +92,17 @@ export function AutoModule(metadata: AutoModuleMetadata): ClassDecorator {
 						);
 					}
 					allProviders.push({ provide: token, useClass: impls[0].cls });
+					loadedProviders.push({ token, cls: impls[0].cls, priority: impls[0].priority });
 				}
 			}
 		}
 
 		if (controllersPath && controllersPath.length > 0) {
-			const controllerClasses = loadClassesFromPatterns(controllersPath, baseDir);
+			const controllerClasses = loadClassesFromPatterns(controllersPath, { baseDir, debug });
 			for (const cls of controllerClasses) {
 				if (isAutoController(cls)) {
 					allControllers.push(cls);
+					loadedControllers.push(cls);
 				}
 			}
 		}
@@ -112,5 +114,27 @@ export function AutoModule(metadata: AutoModuleMetadata): ClassDecorator {
 		};
 
 		Module(finalMetadata)(target);
+
+		if (debug) {
+			const endTime = Date.now();
+			console.log(`[debug] AutoModule completed scanning in ${endTime - startTime}ms`);
+			if (loadedProviders.length > 0) {
+				console.log('[debug] Loaded Providers:');
+				for (const p of loadedProviders) {
+					console.log(` - Token: ${p.token.toString()} -> Class: ${p.cls.name}, Priority: ${p.priority}`);
+				}
+			} else {
+				console.log('[debug] No providers loaded from scanning.');
+			}
+
+			if (loadedControllers.length > 0) {
+				console.log('[debug] Loaded Controllers:');
+				for (const c of loadedControllers) {
+					console.log(` - ${c.name}`);
+				}
+			} else {
+				console.log('[debug] No controllers loaded from scanning.');
+			}
+		}
 	};
 }

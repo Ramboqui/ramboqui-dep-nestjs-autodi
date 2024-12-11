@@ -2,31 +2,44 @@ import * as fs from 'fs';
 import * as glob from 'glob';
 import * as path from 'path';
 
+interface LoadClassesOptions {
+	baseDir: string;
+	debug?: boolean;
+}
+
+/**
+ * In-memory cache to avoid reading the same file multiple times.
+ * Key: filePath, Value: content string or null if failed to read.
+ * @internal
+ */
+const fileContentCache = new Map<string, string | null>();
+
 /**
  * Loads classes from given glob patterns relative to a base directory.
  *
  * PERFORMANCE OPTIMIZATIONS:
- * - If a pattern does not contain '**', we try a direct approach using `fs` to avoid a full glob traversal.
+ * - If a pattern does not contain '**', try a direct approach using `fs` to avoid a full glob traversal.
  * - Uses `nodir: true` in glob for complex patterns.
  * - Filters by .ts or .js files.
- * - Before requiring a file, we read its content and check if `@AutoInjectable(` or `@AutoController(` appears.
- *   If not found, we skip `require()`. This drastically reduces overhead if many files don't contain relevant decorators.
+ * - Before requiring a file, read its content and check if it contains
+ *   `@AutoInjectable(` or `@AutoController(`. If not found, skip `require()`.
+ * - Cache file reads to avoid reading the same file multiple times.
  *
  * @param patterns The glob patterns. Example: ["application/services/**\/*.ts"]
- * @param baseDir The base directory, usually the directory of the module that called @AutoModule.
+ * @param options An object containing baseDir and debug flag.
  * @returns An array of classes found.
  */
-export function loadClassesFromPatterns(patterns: string[], baseDir: string): Function[] {
+export function loadClassesFromPatterns(patterns: string[], options: LoadClassesOptions): Function[] {
 	const classes: Function[] = [];
+	const { baseDir, debug } = options;
 
 	for (const pattern of patterns) {
 		const finalPattern = path.isAbsolute(pattern) ? pattern : path.resolve(baseDir, pattern);
 
-		// If pattern does not contain '**', try simpler approach
 		if (!pattern.includes('**')) {
-			handleSimplePattern(finalPattern, classes);
+			handleSimplePattern(finalPattern, classes, debug);
 		} else {
-			handleComplexPattern(finalPattern, classes);
+			handleComplexPattern(finalPattern, classes, debug);
 		}
 	}
 
@@ -35,16 +48,12 @@ export function loadClassesFromPatterns(patterns: string[], baseDir: string): Fu
 
 /**
  * Handle a simple pattern without '**'.
- * We try to directly read the directory or the file instead of using glob.
- * @param finalPattern The resolved pattern
- * @param classes The array to push found classes
  * @internal
  */
-function handleSimplePattern(finalPattern: string, classes: Function[]) {
+function handleSimplePattern(finalPattern: string, classes: Function[], debug?: boolean) {
 	const dir = path.dirname(finalPattern);
 	const filePattern = path.basename(finalPattern);
 
-	// If filePattern includes '*', it's a simple wildcard in one directory
 	if (filePattern.includes('*')) {
 		try {
 			const files = fs.readdirSync(dir, { withFileTypes: true });
@@ -53,79 +62,64 @@ function handleSimplePattern(finalPattern: string, classes: Function[]) {
 				if (!dirent.isFile()) continue;
 				if (!fileRegex.test(dirent.name)) continue;
 				const fullPath = path.join(dir, dirent.name);
-				loadClassesFromFileIfAnnotated(fullPath, classes);
+				loadClassesFromFileIfAnnotated(fullPath, classes, debug);
 			}
 		} catch {
-			// fallback to glob
-			loadClassesWithGlob(finalPattern, classes);
+			loadClassesWithGlob(finalPattern, classes, debug);
 		}
 	} else {
-		// filePattern is a specific file
 		if (fs.existsSync(finalPattern) && fs.statSync(finalPattern).isFile()) {
-			loadClassesFromFileIfAnnotated(finalPattern, classes);
+			loadClassesFromFileIfAnnotated(finalPattern, classes, debug);
 		} else {
-			loadClassesWithGlob(finalPattern, classes);
+			loadClassesWithGlob(finalPattern, classes, debug);
 		}
 	}
 }
 
 /**
  * Handle complex pattern with '**' using glob.
- * @param finalPattern The pattern
- * @param classes The array to push found classes
  * @internal
  */
-function handleComplexPattern(finalPattern: string, classes: Function[]) {
-	loadClassesWithGlob(finalPattern, classes);
+function handleComplexPattern(finalPattern: string, classes: Function[], debug?: boolean) {
+	loadClassesWithGlob(finalPattern, classes, debug);
 }
 
 /**
  * Uses glob to load classes, applying nodir: true to reduce overhead.
- * @param pattern The resolved pattern
- * @param classes Reference to classes array
  * @internal
  */
-function loadClassesWithGlob(pattern: string, classes: Function[]) {
+function loadClassesWithGlob(pattern: string, classes: Function[], debug?: boolean) {
 	const files = glob.sync(pattern, { absolute: true, nodir: true });
 	for (const file of files) {
-		loadClassesFromFileIfAnnotated(file, classes);
+		loadClassesFromFileIfAnnotated(file, classes, debug);
 	}
 }
 
 /**
- * Checks if a file is a .ts or .js file, reads its content to see if it contains
+ * Checks if a file is a .ts or .js file, reads its content (with cache) to see if it contains
  * `@AutoInjectable(` or `@AutoController(`. If not found, skip `require()`.
  * If found, require and load classes.
- * @param filePath The file to load from
- * @param classes The array to push found classes
  * @internal
  */
-function loadClassesFromFileIfAnnotated(filePath: string, classes: Function[]) {
+function loadClassesFromFileIfAnnotated(filePath: string, classes: Function[], debug?: boolean) {
 	if (!isTsOrJs(filePath)) return;
 
-	try {
-		const content = fs.readFileSync(filePath, 'utf-8');
-		// Check if the file mentions our decorators
-		// This is a simple substring check, we assume decorators aren't minified or broken in multiple lines.
-		const hasAutoInjectable = content.includes('@AutoInjectable(');
-		const hasAutoController = content.includes('@AutoController(');
+	const content = getFileContent(filePath);
+	if (!content) return;
 
-		if (hasAutoInjectable || hasAutoController) {
-			// Only then require the file
-			loadClassesFromFile(filePath, classes);
-		}
-	} catch {
-		// Ignore errors, no classes loaded
+	const hasAutoInjectable = content.includes('@AutoInjectable(');
+	const hasAutoController = content.includes('@AutoController(');
+
+	if (hasAutoInjectable || hasAutoController) {
+		loadClassesFromFile(filePath, classes, debug);
 	}
 }
 
 /**
  * Actually requires the file and extracts classes from it.
- * @param filePath The path to the file
- * @param classes The classes array
  * @internal
  */
-function loadClassesFromFile(filePath: string, classes: Function[]) {
+function loadClassesFromFile(filePath: string, classes: Function[], debug?: boolean) {
 	const mod = require(filePath);
 	for (const exportedName of Object.keys(mod)) {
 		const exported = mod[exportedName];
@@ -133,14 +127,33 @@ function loadClassesFromFile(filePath: string, classes: Function[]) {
 			classes.push(exported);
 		}
 	}
+	if (debug) {
+		console.log(`[debug] Loaded classes from: ${filePath}`);
+	}
 }
 
 /**
  * Checks if file is .ts or .js
- * @param filePath The file path
- * @returns true if .ts or .js
  * @internal
  */
 function isTsOrJs(filePath: string): boolean {
 	return filePath.endsWith('.ts') || filePath.endsWith('.js');
+}
+
+/**
+ * Get file content from cache or read from disk.
+ * @internal
+ */
+function getFileContent(filePath: string): string | null {
+	if (fileContentCache.has(filePath)) {
+		return fileContentCache.get(filePath)!;
+	}
+	try {
+		const content = fs.readFileSync(filePath, 'utf-8');
+		fileContentCache.set(filePath, content);
+		return content;
+	} catch {
+		fileContentCache.set(filePath, null);
+		return null;
+	}
 }

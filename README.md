@@ -174,8 +174,8 @@ No manual listing of the `CatalogoService` or `CatalogoController` is needed. `I
 ## Credits
 
 Inspired by:  
-- [@lido-nestjs/di](URL_HERE)  
-- [@tiny-nestjs/auto-injectable](URL_HERE)
+- [@lido-nestjs/di](https://www.npmjs.com/package/@lido-nestjs/di)  
+- [@tiny-nestjs/auto-injectable](https://www.npmjs.com/package/@tiny-nestjs/auto-injectable)
 
 ## License
 

@@ -1,6 +1,6 @@
 # @ramboqui/nestjs-autodi
 
-This library provides decorators and utilities for NestJS to enable automatic discovery and registration of providers and controllers, as well as a simpler way to handle interfaces at runtime. It is inspired by [@lido-nestjs/di](URL_HERE) and [@tiny-nestjs/auto-injectable](URL_HERE).
+This library provides decorators and utilities for NestJS to enable automatic discovery and registration of providers and controllers, as well as a simpler way to handle interfaces at runtime. It is inspired by [@lido-nestjs/di](https://www.npmjs.com/package/@lido-nestjs/di) and [@tiny-nestjs/auto-injectable](https://www.npmjs.com/package/@tiny-nestjs/auto-injectable).
 
 By using this library, you reduce boilerplate, avoid manual listing of providers and controllers in your modules, and you can even inject implementations of interfaces without having to use `@Inject()` decorators. This makes your code cleaner, more maintainable, and easier to scale.
 

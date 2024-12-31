@@ -30,6 +30,7 @@ function getCallerDir(): string {
 			if (
 				!filePath.includes('node_modules') &&
 				!filePath.includes('reflect-metadata') &&
+				!filePath.includes('auto-module.decorator.js') &&
 				!filePath.includes('auto-module.decorator.ts')
 			) {
 				return path.dirname(filePath);
